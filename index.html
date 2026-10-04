@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#090909">
+<title>Win Owner 13 — ESP Flasher</title>
+<style>
+:root{--red:#ff1738;--red2:#b80020;--bg:#080808;--card:#121214;--line:#2a2a2e;--txt:#f5f5f7;--muted:#9b9ba3}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 75% -10%,#260006 0,#090909 30%,#050505 72%,#030303 100%);color:var(--txt);font-family:Arial,Helvetica,sans-serif;min-height:100vh}
+.wrap{max-width:980px;margin:auto;padding:18px}
+header{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+.logo{width:48px;height:48px;position:relative;display:grid;grid-template-columns:1fr 1fr;gap:3px;transform:skewY(-4deg)}
+.logo i{display:block;background:linear-gradient(135deg,#ff304d,#b40020);border:1px solid #ff5269;box-shadow:0 0 16px #d0002e55}
+.logo i:nth-child(2){transform:translateY(-3px)}
+h1{font-size:25px;margin:0}header p{margin:3px 0 0;color:var(--muted);font-size:13px}
+.card{background:#111114eF;border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:15px;box-shadow:0 12px 35px #0008}
+h2{font-size:17px;margin:0 0 12px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+button,.filebtn,select{border:1px solid #39393f;background:#1b1b20;color:#fff;border-radius:12px;min-height:44px;padding:10px 14px;font-size:14px;cursor:pointer}
+button:hover,.filebtn:hover{border-color:#ff3450;background:#241318}
+button.primary{background:linear-gradient(135deg,#ff2143,#bd0023);border-color:#ff3b57;font-weight:700}
+button.danger{background:#260b10;border-color:#7d1728}
+button:disabled{opacity:.45;cursor:not-allowed}
+select{width:100%;appearance:auto}
+label.small{display:block;color:var(--muted);font-size:12px;margin:0 0 6px}
+.status{display:flex;align-items:center;gap:9px;font-size:14px}.dot{width:10px;height:10px;border-radius:50%;background:#777}.dot.ok{background:#32e875;box-shadow:0 0 12px #32e875}
+.badge{display:inline-block;border:1px solid #4b1822;color:#ff7a8c;background:#19090d;padding:4px 8px;border-radius:999px;font-size:11px;margin-left:5px}
+.drop{border:1px dashed #4a4a52;border-radius:13px;padding:12px;margin-top:10px}
+.drop input{width:100%;color:#bbb}.row{display:flex;gap:10px;flex-wrap:wrap}.row>*{flex:1;min-width:150px}
+.progress{height:13px;background:#24242a;border-radius:99px;overflow:hidden;margin:12px 0}.bar{height:100%;width:0;background:linear-gradient(90deg,#ff1738,#ff6679);transition:width .15s}
+pre{margin:0;background:#070708;border:1px solid #202025;border-radius:12px;padding:12px;height:190px;overflow:auto;color:#d9d9df;font:12px/1.45 monospace;white-space:pre-wrap}
+.diagram{background:#09090b;border:1px solid #29292f;border-radius:14px;padding:10px;overflow:auto}
+.diagram svg{width:100%;min-width:650px;height:auto;display:block}
+
+.schemes-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.scheme-tabs{display:flex;gap:7px;overflow:auto;padding:2px 0 8px}
+.scheme-tab{min-height:38px;padding:8px 12px;border-radius:10px;white-space:nowrap;font-size:12px}
+.scheme-tab.active{background:#5f0d1b;border-color:#c52a43}
+.scheme-panel{display:none}
+.scheme-panel.active{display:block}
+.wokwi{background:#0b0c0f;border:1px solid #30323a;border-radius:14px;padding:10px;overflow:auto}
+.wokwi svg{display:block;width:100%;min-width:720px;height:auto}
+.scheme-meta{display:flex;gap:7px;flex-wrap:wrap;margin:9px 0 0}
+.pin{font:12px monospace;fill:#e9e9ee}
+.comp{fill:#17191f;stroke:#d12a47;stroke-width:2}
+.comp2{fill:#111318;stroke:#737783;stroke-width:1.5}
+.pinbox{fill:#0d0e12;stroke:#454851}
+.wire-red{stroke:#ff3154;stroke-width:3;fill:none}
+.wire-blue{stroke:#43a7ff;stroke-width:3;fill:none}
+.wire-green{stroke:#36d88a;stroke-width:3;fill:none}
+.wire-yellow{stroke:#ffd45a;stroke-width:3;fill:none}
+.wire-gray{stroke:#9da2ad;stroke-width:2.5;fill:none}
+.wire-purple{stroke:#bd79ff;stroke-width:3;fill:none}
+.scheme-title{font-size:14px;font-weight:700;margin:9px 0 3px}
+.scheme-note{font-size:12px;color:#9fa3ad;line-height:1.5}
+.note{font-size:12px;line-height:1.5;color:var(--muted)}.warn{color:#ff9aaa}
+footer{color:#777;font-size:11px;text-align:center;padding:8px}
+@media(max-width:680px){.wrap{padding:11px}.grid{grid-template-columns:1fr}.card{padding:14px;border-radius:15px}h1{font-size:21px}.row>*{min-width:100%}button,.filebtn,select{width:100%;min-height:48px}.diagram svg{min-width:560px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="logo"><i></i><i></i><i></i><i></i></div>
+  <div><h1>Win Owner 13 — ESP Flasher</h1><p>Веб-флешер для ESP32 • телефон / ПК • ST7789 Touch</p></div>
+</header>
+
+<section class="card">
+<h2>1. Конфигурация платы</h2>
+<div class="grid">
+  <div>
+    <label class="small">Плата</label>
+    <select id="board">
+      <option value="wroom">ESP32-WROOM-32 + ST7789 Touch</option>
+      <option value="s3">ESP32-S3 + ST7789 Touch</option>
+    </select>
+  </div>
+  <div>
+    <label class="small">Размер Flash</label>
+    <select id="flashSize">
+      <option value="4MB">4 MB</option>
+      <option value="8MB">8 MB</option>
+      <option value="16MB">16 MB</option>
+      <option value="32MB">32 MB</option>
+    </select>
+  </div>
+</div>
+<p class="note" id="boardInfo">ESP32-WROOM-32: ST7789 240×320, Touch XPT2046. Дисплейные пины — как в XD Service.</p>
+</section>
+
+<section class="card">
+<h2>2. Подключение</h2>
+<div class="status"><span id="dot" class="dot"></span><span id="status">ESP32 не подключён</span></div>
+<div class="row" style="margin-top:12px">
+  <button class="primary" id="connect">🔌 Подключить ESP32</button>
+  <button id="disconnect" disabled>Отключить</button>
+  <button class="danger" id="erase" disabled>🧹 Стереть Flash</button>
+</div>
+<p class="note">Подключай плату USB-кабелем с передачей данных. В браузере появится окно выбора USB-порта.</p>
+</section>
+
+<section class="card">
+<h2>3. Прошивка</h2>
+<div class="grid">
+  <div>
+    <label class="small">Режим</label>
+    <select id="mode">
+      <option value="merged">Один готовый merged .bin → 0x0000</option>
+      <option value="parts">Bootloader + Partition + App</option>
+    </select>
+  </div>
+  <div>
+    <label class="small">Скорость</label>
+    <select id="baud"><option>115200</option><option selected>460800</option><option>921600</option></select>
+  </div>
+</div>
+
+<div id="mergedBox" class="drop">
+  <label class="small">Готовый merged/factory BIN</label>
+  <input id="merged" type="file" accept=".bin">
+  <p class="note">Этот файл прошивается с адреса <b>0x0000</b>. Используй именно merged/factory BIN, а не обычный app .ino.bin.</p>
+</div>
+
+<div id="partsBox" style="display:none">
+  <div class="drop"><label class="small">Bootloader → 0x1000</label><input id="boot" type="file" accept=".bin"></div>
+  <div class="drop"><label class="small">Partition table → 0x8000</label><input id="part" type="file" accept=".bin"></div>
+  <div class="drop"><label class="small">Application → 0x10000</label><input id="app" type="file" accept=".bin"></div>
+</div>
+
+<div class="progress"><div class="bar" id="bar"></div></div>
+<div class="row">
+  <button class="primary" id="flash" disabled>⚡ Прошить</button>
+  <button id="reset" disabled>↻ Перезагрузить ESP32</button>
+</div>
+</section>
+
+<section class="card">
+<h2>4. Лог</h2>
+<pre id="log">Win Owner 13 Flasher готов.\nВыбери плату и подключи ESP32.</pre>
+</section>
+
+<section class="card">
+<h2>5. Схема прошивки</h2>
+<p class="note">Для прошивки через этот сайт нужен USB-кабель с передачей данных. Никаких датчиков, температуры или дополнительных модулей для прошивки не требуется.</p>
+<div class="diagram">
+<svg viewBox="0 0 900 330" xmlns="http://www.w3.org/2000/svg" aria-label="Схема подключения для прошивки ESP32">
+  <rect x="35" y="70" width="220" height="170" rx="18" fill="#15151a" stroke="#ff2848" stroke-width="2"/>
+  <text x="145" y="110" fill="#fff" text-anchor="middle" font-size="20" font-weight="700">Телефон / ПК</text>
+  <text x="145" y="145" fill="#ddd" text-anchor="middle" font-size="14">Браузер</text>
+  <text x="145" y="175" fill="#ddd" text-anchor="middle" font-size="14">Win Owner 13 Flasher</text>
+  <text x="145" y="210" fill="#9fa3ad" text-anchor="middle" font-size="12">USB OTG для телефона</text>
+
+  <rect x="365" y="120" width="170" height="70" rx="14" fill="#17191f" stroke="#737783" stroke-width="2"/>
+  <text x="450" y="150" fill="#fff" text-anchor="middle" font-size="16" font-weight="700">USB DATA</text>
+  <text x="450" y="173" fill="#9fa3ad" text-anchor="middle" font-size="12">не только зарядка</text>
+
+  <rect x="645" y="55" width="220" height="210" rx="18" fill="#15151a" stroke="#ff2848" stroke-width="2"/>
+  <text x="755" y="95" fill="#fff" text-anchor="middle" font-size="20" font-weight="700">ESP32</text>
+  <text x="670" y="135" fill="#ddd" font-size="14">USB → плата</text>
+  <text x="670" y="165" fill="#ddd" font-size="14">BOOT — при необходимости</text>
+  <text x="670" y="195" fill="#ddd" font-size="14">EN / RESET — перезапуск</text>
+  <text x="670" y="230" fill="#9fa3ad" font-size="12">После подключения выбери</text>
+  <text x="670" y="248" fill="#9fa3ad" font-size="12">USB/Serial-порт в браузере</text>
+
+  <path d="M255 155 C300 155 325 155 365 155" fill="none" stroke="#ff3154" stroke-width="4"/>
+  <path d="M535 155 C575 155 605 155 645 155" fill="none" stroke="#43a7ff" stroke-width="4"/>
+  <circle cx="255" cy="155" r="5" fill="#ff3154"/><circle cx="365" cy="155" r="5" fill="#ff3154"/>
+  <circle cx="535" cy="155" r="5" fill="#43a7ff"/><circle cx="645" cy="155" r="5" fill="#43a7ff"/>
+</svg>
+</div>
+<div class="scheme-note" style="margin-top:10px">Если ESP32 не определяется: подключи DATA-кабель, нажми и удерживай BOOT, нажми EN/RESET, затем отпусти BOOT и снова нажми «Подключить ESP32».</div>
+</section>
+
+<footer>Win Owner 13 Flasher • Использует esptool-js от Espressif</footer>
+</div>
+
+<script type="module">
+import { ESPLoader, Transport } from "https://unpkg.com/esptool-js@0.6.0/bundle.js";
+
+let device=null, transport=null, loader=null, connected=false;
+
+const $=id=>document.getElementById(id);
+const logEl=$("log"), bar=$("bar"), dot=$("dot"), statusEl=$("status");
+function log(s){logEl.textContent += "\\n"+s; logEl.scrollTop=logEl.scrollHeight}
+function setStatus(s,ok=false){statusEl.textContent=s;dot.className="dot"+(ok?" ok":"")}
+function terminal(){return{
+ clean(){logEl.textContent=""},
+ writeLine(d){log(String(d))},
+ write(d){log(String(d))}
+}}
+function setProgress(p){bar.style.width=Math.max(0,Math.min(100,p))+"%"}
+
+$("board").onchange=()=>{
+ const s=$("board").value;
+ $("boardInfo").textContent=s==="wroom"
+ ?"ESP32-WROOM-32: ST7789 240×320, Touch XPT2046. Дисплейные пины — как в XD Service."
+ :"ESP32-S3 + ST7789 Touch. GPIO могут отличаться по конкретной S3-плате.";
+ if(s==="s3") $("flashSize").value="16MB"; else $("flashSize").value="4MB";
+};
+
+$("mode").onchange=()=>{
+ const parts=$("mode").value==="parts";
+ $("mergedBox").style.display=parts?"none":"block";
+ $("partsBox").style.display=parts?"block":"none";
+};
+
+async function connect(){
+ try{
+   setStatus("Запрашиваю USB-порт…");
+   if(!("serial" in navigator)) throw new Error("Web Serial недоступен в этом браузере.");
+   device=await navigator.serial.requestPort();
+   transport=new Transport(device,true);
+   loader=new ESPLoader({
+     transport,
+     baudrate:Number($("baud").value),
+     terminal:terminal(),
+     debugLogging:false
+   });
+   const chip=await loader.main();
+   connected=true;
+   setStatus("Подключено: "+chip,true);
+   $("connect").disabled=true;$("disconnect").disabled=false;$("erase").disabled=false;
+   $("flash").disabled=false;$("reset").disabled=false;
+   log("Чип определён: "+chip);
+ }catch(e){setStatus("Ошибка подключения");log("ERROR: "+(e?.message||e))}
+}
+async function disconnect(){
+ try{if(transport) await transport.disconnect()}catch(e){}
+ connected=false;device=null;transport=null;loader=null;
+ setStatus("ESP32 не подключён");$("connect").disabled=false;$("disconnect").disabled=true;
+ $("erase").disabled=true;$("flash").disabled=true;$("reset").disabled=true;
+}
+async function readFile(id){const f=$(id).files[0];if(!f)throw new Error("Не выбран файл: "+id);return new Uint8Array(await f.arrayBuffer())}
+
+$("connect").onclick=connect;
+$("disconnect").onclick=disconnect;
+
+$("erase").onclick=async()=>{
+ if(!loader)return;
+ if(!confirm("Стереть всю Flash-память ESP32?"))return;
+ try{setProgress(0);log("Стирание Flash…");await loader.eraseFlash();setProgress(100);log("Flash очищена.")}catch(e){log("ERROR: "+(e?.message||e))}
+};
+
+$("flash").onclick=async()=>{
+ if(!loader){log("Сначала подключи ESP32.");return}
+ try{
+   setProgress(0);log("Подготовка прошивки…");
+   const mode=$("mode").value;
+   let files=[];
+   if(mode==="merged"){
+     files=[{data:await readFile("merged"),address:0x0000}];
+   }else{
+     files=[
+       {data:await readFile("boot"),address:0x1000},
+       {data:await readFile("part"),address:0x8000},
+       {data:await readFile("app"),address:0x10000}
+     ];
+   }
+   const opts={
+     fileArray:files,
+     flashMode:"dio",
+     flashFreq:"40m",
+     flashSize:$("flashSize").value,
+     eraseAll:false,
+     compress:true,
+     reportProgress:(i,w,t)=>setProgress((w/t)*100)
+   };
+   await loader.writeFlash(opts);
+   setProgress(100);log("✓ Прошивка завершена.");
+   await loader.after("hard_reset");
+   log("✓ ESP32 перезагружен.");
+ }catch(e){log("ERROR: "+(e?.message||e));setProgress(0)}
+};
+
+$("reset").onclick=async()=>{
+ try{if(loader){await loader.after("hard_reset");log("ESP32 перезагружен.")}}catch(e){log("ERROR: "+(e?.message||e))}
+};
+
+</script>
+</body>
+</html>
