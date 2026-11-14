@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BIN FLASHER // root@flash</title>
+<style>
+:root{--bg:#020a04;--panel:#04140a;--g:#00ff66;--g2:#00b347;--dim:#0b5d2c;--warn:#ffd166;--err:#ff5470}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--g);font-family:"Courier New",ui-monospace,Consolas,monospace;line-height:1.5}
+canvas#rain{position:fixed;inset:0;width:100%;height:100%;z-index:0;opacity:.22}
+main{position:relative;z-index:1;max-width:860px;margin:0 auto;padding:32px 16px 64px}
+h1{font-size:clamp(28px,6vw,52px);margin:0 0 4px;letter-spacing:2px;text-shadow:0 0 12px var(--g)}
+.sub{color:var(--g2);margin:0 0 28px}
+.cursor::after{content:"█";animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.box{background:rgba(4,20,10,.92);border:1px solid var(--dim);padding:18px;margin-bottom:18px;box-shadow:0 0 18px rgba(0,255,102,.08)}
+.box h2{margin:0 0 12px;font-size:16px;color:var(--g)}
+.box h2::before{content:"$ ";color:var(--g2)}
+#drop{border:2px dashed var(--g2);padding:34px 12px;text-align:center;cursor:pointer;transition:.15s}
+#drop:hover,#drop.over,#drop:focus-visible{background:rgba(0,255,102,.08);border-color:var(--g);outline:none;box-shadow:0 0 16px rgba(0,255,102,.35)}
+#drop b{display:block;font-size:18px}
+#drop span{color:var(--g2);font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+button,select{font:inherit;background:var(--bg);color:var(--g);border:1px solid var(--g2);padding:9px 14px;cursor:pointer}
+button:hover:not(:disabled){background:var(--g);color:var(--bg)}
+button:focus-visible,select:focus-visible{outline:2px solid var(--g);outline-offset:2px}
+button:disabled{opacity:.35;cursor:not-allowed}
+button.go{border-color:var(--g);font-weight:bold}
+dl{display:grid;grid-template-columns:110px 1fr;gap:4px 12px;margin:0;font-size:14px}
+dt{color:var(--g2)}dd{margin:0;word-break:break-all}
+pre{margin:0;overflow-x:auto;font-size:13px;color:var(--g)}
+.bar{height:22px;border:1px solid var(--g2);margin:12px 0 4px;position:relative}
+.bar i{display:block;height:100%;width:0;background:repeating-linear-gradient(90deg,var(--g) 0 8px,var(--g2) 8px 10px);box-shadow:0 0 12px var(--g)}
+#pct{font-size:14px;color:var(--g2)}
+#log{height:200px;overflow-y:auto;font-size:13px;white-space:pre-wrap}
+.warn{color:var(--warn)}.err{color:var(--err)}.dim{color:var(--g2)}
+.note{font-size:13px;color:var(--g2);margin:10px 0 0}
+@media(max-width:520px){dl{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){.cursor::after{animation:none}}
+</style>
+</head>
+<body>
+<canvas id="rain" aria-hidden="true"></canvas>
+<main>
+  <h1 class="cursor">BIN_FLASHER</h1>
+  <p class="sub">Загрузите .bin файл, проверьте его и прошейте устройство через USB/Serial.</p>
+
+  <section class="box">
+    <h2>load firmware.bin</h2>
+    <div id="drop" tabindex="0" role="button" aria-label="Выбрать bin файл">
+      <b>Перетащите .bin файл сюда</b>
+      <span>или нажмите, чтобы выбрать (любой бинарный файл)</span>
+    </div>
+    <input id="file" type="file" accept=".bin,.img,.hex,.rom,application/octet-stream" hidden>
+  </section>
+
+  <section class="box" id="info" hidden>
+    <h2>file info</h2>
+    <dl>
+      <dt>Имя</dt><dd id="fName"></dd>
+      <dt>Размер</dt><dd id="fSize"></dd>
+      <dt>CRC32</dt><dd id="fCrc"></dd>
+      <dt>SHA-256</dt><dd id="fSha"></dd>
+    </dl>
+    <h2 style="margin-top:16px">hexdump (256 байт)</h2>
+    <pre id="hex"></pre>
+  </section>
+
+  <section class="box">
+    <h2>flash</h2>
+    <div class="row">
+      <select id="baud" aria-label="Скорость порта">
+        <option>9600</option><option>57600</option><option selected>115200</option>
+        <option>230400</option><option>460800</option><option>921600</option>
+      </select>
+      <button id="connect">Подключить порт</button>
+      <button id="flash" class="go" disabled>Прошить</button>
+    </div>
+    <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="fill"></i></div>
+    <div id="pct">0%</div>
+    <p class="note" id="mode">Режим: симуляция (порт не подключён).</p>
+    <p class="note">Реальная запись работает в Chrome / Edge (Web Serial, нужен https). Файл отправляется в порт как есть, без протокола загрузчика. Для ESP32, STM32 и других чипов нужен их собственный протокол прошивки.</p>
+  </section>
+
+  <section class="box">
+    <h2>log</h2>
+    <div id="log" role="log" aria-live="polite"></div>
+  </section>
+</main>
+
+<script>
+// ---------- matrix rain ----------
+(function(){
+  const c=document.getElementById('rain'),x=c.getContext('2d');
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches){c.style.display='none';return}
+  let w,h,cols,drops;const ch='01アイウエオカキクケコ{}[]<>/\\#$%';
+  function size(){w=c.width=innerWidth;h=c.height=innerHeight;cols=Math.floor(w/16);drops=Array(cols).fill(0).map(()=>Math.random()*h/16)}
+  size();addEventListener('resize',size);
+  setInterval(()=>{
+    x.fillStyle='rgba(2,10,4,.12)';x.fillRect(0,0,w,h);
+    x.fillStyle='#00ff66';x.font='15px monospace';
+    drops.forEach((y,i)=>{
+      x.fillText(ch[Math.floor(Math.random()*ch.length)],i*16,y*16);
+      if(y*16>h&&Math.random()>.975)drops[i]=0;drops[i]++;
+    });
+  },60);
+})();
+
+// ---------- helpers ----------
+const $=id=>document.getElementById(id);
+let data=null,port=null,busy=false;
+
+function log(msg,cls){
+  const d=document.createElement('div');if(cls)d.className=cls;
+  d.textContent='['+new Date().toLocaleTimeString()+'] '+msg;
+  $('log').appendChild(d);$('log').scrollTop=1e9;
+}
+function setProgress(p){
+  p=Math.round(p);$('fill').style.width=p+'%';$('pct').textContent=p+'%';
+  document.querySelector('.bar').setAttribute('aria-valuenow',p);
+}
+const crcTable=(()=>{const t=[];for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
+function crc32(b){let c=0xFFFFFFFF;for(let i=0;i<b.length;i++)c=crcTable[(c^b[i])&255]^(c>>>8);return((c^0xFFFFFFFF)>>>0).toString(16).toUpperCase().padStart(8,'0')}
+function hexdump(b){
+  let o='';const n=Math.min(b.length,256);
+  for(let i=0;i<n;i+=16){
+    const s=b.slice(i,Math.min(i+16,n));
+    const hx=[...s].map(v=>v.toString(16).padStart(2,'0')).join(' ').padEnd(47);
+    const as=[...s].map(v=>v>31&&v<127?String.fromCharCode(v):'.').join('');
+    o+=i.toString(16).padStart(8,'0')+'  '+hx+'  |'+as+'|\n';
+  }
+  return o;
+}
+const fmt=n=>n<1024?n+' Б':n<1048576?(n/1024).toFixed(1)+' КБ':(n/1048576).toFixed(2)+' МБ';
+
+// ---------- load file ----------
+async function loadFile(f){
+  if(!f)return;
+  log('Загрузка файла: '+f.name);
+  data=new Uint8Array(await f.arrayBuffer());
+  $('info').hidden=false;
+  $('fName').textContent=f.name;
+  $('fSize').textContent=fmt(data.length)+' ('+data.length+' байт)';
+  $('fCrc').textContent=crc32(data);
+  $('hex').textContent=hexdump(data);
+  $('fSha').textContent='вычисляется...';
+  try{
+    const h=await crypto.subtle.digest('SHA-256',data);
+    $('fSha').textContent=[...new Uint8Array(h)].map(v=>v.toString(16).padStart(2,'0')).join('');
+  }catch(e){$('fSha').textContent='недоступно (нужен https)'}
+  $('flash').disabled=false;setProgress(0);
+  log('Файл готов к прошивке.');
+}
+const drop=$('drop'),inp=$('file');
+drop.onclick=()=>inp.click();
+drop.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();inp.click()}};
+inp.onchange=()=>loadFile(inp.files[0]);
+['dragenter','dragover'].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.add('over')}));
+['dragleave','drop'].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.remove('over')}));
+drop.addEventListener('drop',e=>loadFile(e.dataTransfer.files[0]));
+
+// ---------- serial ----------
+$('connect').onclick=async()=>{
+  if(!('serial' in navigator)){log('Web Serial не поддерживается. Откройте сайт в Chrome или Edge. Доступна симуляция.','err');return}
+  try{
+    if(port){await port.close().catch(()=>{});port=null;$('connect').textContent='Подключить порт';$('mode').textContent='Режим: симуляция (порт не подключён).';log('Порт отключён.','warn');return}
+    port=await navigator.serial.requestPort();
+    await port.open({baudRate:+$('baud').value});
+    $('connect').textContent='Отключить порт';
+    $('mode').textContent='Режим: реальная запись в порт ('+$('baud').value+' бод).';
+    log('Порт открыт, '+$('baud').value+' бод.');
+  }catch(e){port=null;log('Не удалось открыть порт: '+e.message,'err')}
+};
+
+// ---------- flash ----------
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+$('flash').onclick=async()=>{
+  if(!data||busy)return;
+  busy=true;$('flash').disabled=true;$('connect').disabled=true;setProgress(0);
+  const real=!!port,CH=1024;
+  log(real?'Старт записи в порт...':'Старт симуляции (без устройства)...',real?'':'warn');
+  try{
+    const w=real?port.writable.getWriter():null;
+    for(let i=0;i<data.length;i+=CH){
+      const part=data.subarray(i,Math.min(i+CH,data.length));
+      if(real)await w.write(part);else await sleep(8);
+      const p=Math.min(i+CH,data.length)/data.length*100;setProgress(p);
+      if((i/CH)%64===0)log('0x'+i.toString(16).padStart(8,'0')+' записано');
+    }
+    if(w)w.releaseLock();
+    setProgress(100);
+    log('Готово: отправлено '+data.length+' байт. CRC32 '+crc32(data),'');
+  }catch(e){log('Ошибка: '+e.message,'err')}
+  busy=false;$('flash').disabled=false;$('connect').disabled=false;
+};
+
+log('Система готова. Ожидание файла...');
+</script>
+</body>
+</html>
